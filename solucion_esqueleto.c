@@ -186,8 +186,9 @@ GameBoard* gameBoardNew() {
         }
         for(int j=0; j<GRID_COLS; j++){
             row->cells[j]=0;
-        }                               
-        row->next = board->first_row;   // Crea 20 filas, cada una con sus 10 celdas en 0, y las va enganchando al principio de la lista.
+        }                
+        // inserto al principio: como todas las filas arrancan vacías, el orden no importa y no hace falta recorrer hasta el final               
+        row->next = board->first_row;   
         board->first_row=row;           //Si alguna fila falla, libera todo con gameBoardDelete y devuelve NULL.
     }
     return board;                     //Al final devuelve el tablero.
@@ -200,6 +201,7 @@ void gameBoardDelete(GameBoard* board) {
     }               //Tolerar board == NULL.
     RowNode* actual = board->first_row;
     while(actual!=NULL){
+        // guardo el siguiente ANTES del free: después de liberar actual ya no puedo leer actual->next
         RowNode* siguiente=actual->next;
         free(actual);
         actual=siguiente;
@@ -228,16 +230,18 @@ void gameBoardAddParticle(GameBoard* board, float x, float y, int color) {
     nueva->x=x;
     nueva->y=y;
     nueva->color=color;
-    nueva->vel_x = ((rand() % 100) / 10.0f) - 5.0f;
+    nueva->vel_x = ((rand() % 100) / 10.0f) - 5.0f; //
     nueva->vel_y = ((rand() % 50) / -10.0f) - 2.0f;
     nueva->life_timer = 30 + (rand() % 30);     //Inicializa x, y, velocidades aleatorias y un life_timer.
     nueva->next=board->first_particle;
-    board->first_particle=nueva;       //se lo agrega al principio de la lista enlazada simple de partículas.    
+    // inserto al principio: no importa el orden de las partículas y así no hay que recorrer la lista
+    board->first_particle=nueva;       
 }
 
 
 int gameBoardCheckAndClearLines(GameBoard* board) {
     int borradas=0;
+    // número de fila actual: lo necesito para la posición de las partículas, porque recorro con punteros y no con índice
     int numFila=0;
     RowNode* actual=board->first_row;
     RowNode* anterior=NULL;
@@ -254,6 +258,7 @@ int gameBoardCheckAndClearLines(GameBoard* board) {
                                  OFFSET_Y + numFila * CELL_SIZE + CELL_SIZE/2, 
                                  actual->cells[c]);   
             }
+            // guardo el siguiente antes del free de la fila llena
             RowNode* siguiente=actual->next;
             free(actual);
             if(anterior==NULL){     //es decir, si la fila llena es la primera, la de más arriba. 
@@ -263,6 +268,7 @@ int gameBoardCheckAndClearLines(GameBoard* board) {
             }                              //desenganché la fila llena de la lista y modifiqué punteros: el que la apuntaba (anterior o first_row) ahora apunta a siguiente.
              RowNode* nueva = (RowNode*)malloc(sizeof(RowNode));
             if (nueva == NULL) {   
+                // si falla el malloc no borro el tablero: devuelvo las líneas borradas hasta ahora
                 return borradas;
             }
             for(int j=0; j<GRID_COLS; j++){
@@ -296,7 +302,7 @@ void gameBoardEnqueuePiece(GameBoard* board, int type) {
         board->queue_head=nueva;
         board->queue_tail=nueva;
     }else{
-        board->queue_tail->next = nueva;    //el next del último nodo pasa a apuntar a nueva.
+        board->queue_tail->next = nueva;    //el next del último nodo pasa a apuntar a nueva. queue_tail permite agregar al final sin recorrer toda la cola
         board->queue_tail = nueva;        //queue_tail apunta a nueva.
     }
 }
@@ -483,17 +489,6 @@ int inicializar() {
 // ========= TESTS (COMPLETAR) =========
 
 void correrTests() {
-    // TODO: Implementar los casos minimos del enunciado. Por ejemplo:
-    //  - strDuplicate: "", "x", un string con distintos caracteres.
-    //  - strCompare: "" vs "", "a" vs "a", y una desigualdad en ambos sentidos (s1/s2 y s2/s1).
-    //  - strConcatenate: "" + "abc" y "hola " + "mundo". Los argumentos deben crearse con
-    //    strDuplicate, porque strConcatenate los libera (no pasar literales).
-    //  - Cola: 5 push y 6 pop; el 6to debe devolver 0 y dejar queue_head y queue_tail en NULL.
-    //    Verificar tambien que un push posterior funcione.
-    //  - Tablero: llenar la fila de indice 19 (la de abajo), llamar a
-    //    gameBoardCheckAndClearLines y comprobar que first_row es la fila nueva vacia y que
-    //    la lista sigue teniendo 20 filas.
-    // Liberar toda la memoria pedida en los tests (strings y tableros).
     char* original1= "x";
     char* copia1 =strDuplicate(original1);
     if (strCompare(original1, copia1) ==0){
